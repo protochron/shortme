@@ -2,7 +2,7 @@ defmodule Shortme.PageController do
   use Shortme.Web, :controller
   alias Shortme.PageController, as: SMPC
 
-  # The AWS library is awful and we need to grab the Erlang record
+  # The Erlcloud AWS library is awful and we need to grab the Erlang record like so
   require Record
   Record.defrecord :aws_config, Record.extract(:aws_config, from_lib: "erlcloud/include/erlcloud_aws.hrl")
 
@@ -19,8 +19,9 @@ defmodule Shortme.PageController do
           |> put_flash(:error, "Unable to find #{id}. Want to create a new short link?")
           |> render("index.html")
         {:ok, x} ->
+          result = Enum.into(x, %{})
           conn
-          |> redirect external: "http://#{x}"
+          |> redirect external: "http://#{result["Url"]}"
         {:error, _} ->
           conn
           |> put_flash(:error, "Looks like we're having a problem right now. Try again later!")
