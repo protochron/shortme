@@ -10,10 +10,17 @@ defmodule Shortme.PageController do
     render conn, "index.html"
   end
 
+  defp insert(url) do
+    #id = generate_hash
+    case :erlcloud_ddb2.put_item(SMPC.table_name(), [{"Id", {:s, id}}, {"Url", {:s, url}], [],
+      get_aws_config) do
+      end
+  end
+
   # Lookup key in Dynamo and redirect if found, otherwise render base page with an error
   def show(conn, %{"id" => id}) do
-    case :erlcloud_ddb2.get_item(Shortme.PageController.table_name(), {"Id", {:s, id}}, [],
-      SMPC.aws_config()) do
+    case :erlcloud_ddb2.get_item(SMPC.table_name(), {"Id", {:s, id}}, [],
+      get_aws_config) do
         {:ok, []} ->
           conn
           |> put_flash(:error, "Unable to find #{id}. Want to create a new short link?")
