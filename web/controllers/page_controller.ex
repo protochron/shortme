@@ -9,8 +9,7 @@ defmodule Shortme.PageController do
       {:ok, id} ->
         url = "#{page_url(Endpoint, :index)}#{id}"
         conn
-        |> put_flash(:info, "Your short link is: <a href=#{url}>#{url}</a>")
-        |> render("index.html", :short_link => url)
+        |> render("index.html", short_link: url)
 
       {:error, _} ->
         conn
@@ -20,7 +19,7 @@ defmodule Shortme.PageController do
   end
 
   def index(conn, _params) do
-    render conn, "index.html"
+    render(conn, "index.html", short_link: nil)
   end
 
 

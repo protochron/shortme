@@ -5,10 +5,16 @@
 
 <div>
   <form>
+    <%= if @short_link do %>
+    <div>
+      <h2>Your link: <a href="<%= @short_link %>"><%= @short_link %></a></h2>
+    </div>
+    <%= else %>
     <div class="form-group">
       <label for="url">URL</label>
       <input type="url" class="form-control" name="url" placeholder="URL">
     </div>
     <button type="submit" class="btn btn-default">Submit</button>
   </form>
+  <% end %>
 </div>
