@@ -54,3 +54,12 @@ The template provisions:
   * 22
   * 80
 
+You will need the `awscli` or the AWS SDK in the language of your choice. You will have to have the id of a VPC you want to launch the instance in. Each account should be provisioned with a default VPC. You will also need to have a launch key configured in your account (instructions [here](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/ec2-key-pairs.html)).
+
+To launch using the `awscli`:
+
+    aws cloudformation create-stack --template-body file://cfn.json --capabilities \
+      CAPABILITY_IAM --parameters ParameterKey=ParameterKey=VPC,ParameterValue=${VPC_ID} \
+      ParameterKey=LaunchKey,ParameterValue=${LAUNCH_KEY_NAME} --stack-name shortme \
+      --on-failure DO_NOTHING
+

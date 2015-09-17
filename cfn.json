@@ -14,10 +14,6 @@
         }
     },
     "Parameters": {
-        "ClusterName": {
-            "Description": "The name of the cluster",
-            "Type": "String"
-        },
         "ClusterSize": {
             "Default": 1,
             "Description": "The size of the cluster",
@@ -73,7 +69,7 @@
                         "apt": {
                           "elixir": [],
                           "erlang": [],
-                          "nodjs-legacy": [],
+                          "nodejs-legacy": [],
                           "npm": []
                         }
                       }
@@ -97,16 +93,7 @@
                 },
                 "MinSize": {
                     "Ref": "ClusterSize"
-                },
-                "Tags": [
-                    {
-                        "Key": "ClusterName",
-                        "PropagateAtLaunch": "true",
-                        "Value": {
-                            "Ref": "ClusterName"
-                        }
-                    }
-                ]
+                }
             },
             "Type": "AWS::AutoScaling::AutoScalingGroup"
         },
