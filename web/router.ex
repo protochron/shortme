@@ -16,7 +16,6 @@ defmodule Shortme.Router do
   scope "/", Shortme do
     pipe_through :browser # Use the default browser stack
 
-    post "/", PageController, :create
     resources "/", PageController, only: [:index, :show]
   end
 end

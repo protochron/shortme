@@ -2,6 +2,7 @@
   "cowlib": {:hex, :cowlib, "1.0.1"},
   "erlcloud": {:git, "https://github.com/gleber/erlcloud", "ed15ff4765aa30b304a95fdc64969f3ebba3b870", []},
   "fs": {:hex, :fs, "0.9.2"},
+  "hashids": {:hex, :hashids, "2.0.0"},
   "jsx": {:git, "git://github.com/talentdeficit/jsx.git", "2d8a7d07da511400475cfc5da649fda0c391f01d", [ref: "master"]},
   "lhttpc": {:git, "git://github.com/talko/lhttpc", "2d01a5f9c7543b77bdd57f44c92e72801f46e423", [ref: "master"]},
   "meck": {:git, "https://github.com/eproxus/meck.git", "796964c6e5578af27a4457f7ac56abcaebe200fe", [ref: "master"]},

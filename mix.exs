@@ -32,6 +32,7 @@ defmodule Shortme.Mixfile do
      {:phoenix_html, "~> 2.1"},
      {:phoenix_live_reload, "~> 1.0", only: :dev},
      {:cowboy, "~> 1.0"},
-     {:erlcloud, git: "https://github.com/gleber/erlcloud"}]
+     {:erlcloud, git: "https://github.com/gleber/erlcloud"},
+     {:hashids, "~> 2.0.0"}]
   end
 end
