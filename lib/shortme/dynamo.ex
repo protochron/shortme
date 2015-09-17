@@ -16,7 +16,7 @@ defmodule Shortme.Dynamo do
   def insert(url) do
     hashlib = Hashids.new(salt: @salt)
 
-    case :erlcloud_ddb2.update_item(counter_name() [{"Id", {:n, 0}}], "set UrlCount = UrlCount + :num", [{:expression_attribute_values, [{":num", 1}]}, {:return_values, :all_old}], Shortme.Dynamo.get_aws_config()) do
+    case :erlcloud_ddb2.update_item(counter_name(), [{"Id", {:n, 0}}], "set UrlCount = UrlCount + :num", [{:expression_attribute_values, [{":num", 1}]}, {:return_values, :all_old}], Shortme.Dynamo.get_aws_config()) do
       {:ok, x} ->
         id = Enum.into(x, %{})["UrlCount"]
       {:error, {"ValidationException", _}} ->

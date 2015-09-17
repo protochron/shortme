@@ -62,6 +62,7 @@
                             "apt": {
                                 "elixir": [],
                                 "erlang": [],
+                                "git": [],
                                 "nodejs-legacy": [],
                                 "npm": []
                             }
