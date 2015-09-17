@@ -7,8 +7,9 @@ defmodule Shortme.PageController do
     result = Shortme.Dynamo.insert(url)
     case result do
       {:ok, id} ->
+        url = "#{page_url(Endpoint, :index)}#{id}"
         conn
-        |> put_flash(:info, "Your link is: #{page_url(Endpoint, :index)}#{id}")
+        |> put_flash(:info, "Your short link is: <a href=#{url}>#{url}</a>")
         |> render("index.html")
 
       {:error, _} ->

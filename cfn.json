@@ -1,0 +1,411 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "Template to create a scalable URL shortener",
+    "Mappings": {
+        "AWSInstanceType2Arch": {
+            "t2.micro": {
+                "Arch": "HVM64"
+            }
+        },
+        "AWSRegionArch2AMI": {
+            "us-east-1": {
+                "HVM64": "ami-2dcf7b46"
+            }
+        }
+    },
+    "Parameters": {
+        "ClusterName": {
+            "Description": "The name of the cluster",
+            "Type": "String"
+        },
+        "ClusterSize": {
+            "Default": 1,
+            "Description": "The size of the cluster",
+            "Type": "Number"
+        },
+        "InstanceType": {
+            "AllowedValues": [
+                "t2.micro"
+            ],
+            "Default": "t2.micro",
+            "Description": "Allowed instance types",
+            "Type": "String"
+        },
+        "LaunchKey": {
+            "Description": "The key to launch with",
+            "Type": "String"
+        },
+        "VPC": {
+            "Description": "The ID of the VPC to launch in",
+            "Type": "String"
+        }
+    },
+    "Resources": {
+        "ShortmeAutoScalingGroup": {
+            "CreationPolicy": {
+                "ResourceSignal": {
+                    "Count": {
+                        "Ref": "ClusterSize"
+                    },
+                    "Timeout": "PT15M"
+                }
+            },
+            "DependsOn": [
+                "ShortmeSecurityGroup"
+            ],
+            "Metadata": {
+                "AWS::CloudFormation::Init": {
+                    "configSets": {
+                        "default": [
+                          "pre-elixir",
+                          "elixir"
+                        ]
+                    },
+                    "pre-elixir": {
+                      "commands": {
+                        "init_elixir_repo": {
+                          "command": "wget https://packages.erlang-solutions.com/erlang-solutions_1.0_all.deb && sudo dpkg -i erlang-solutions_1.0_all.deb && sudo apt-get update"
+                        }
+                      }
+                    },
+                    "elixir": {
+                      "packages": {
+                        "apt": {
+                          "elixir": [],
+                          "erlang": [],
+                          "nodjs-legacy": [],
+                          "npm": []
+                        }
+                      }
+                    }
+                }
+            },
+            "Properties": {
+                "AvailabilityZones": {
+                    "Fn::GetAZs": {
+                        "Ref": "AWS::Region"
+                    }
+                },
+                "DesiredCapacity": {
+                    "Ref": "ClusterSize"
+                },
+                "LaunchConfigurationName": {
+                    "Ref": "ShortmeLaunchConfiguration"
+                },
+                "MaxSize": {
+                    "Ref": "ClusterSize"
+                },
+                "MinSize": {
+                    "Ref": "ClusterSize"
+                },
+                "Tags": [
+                    {
+                        "Key": "ClusterName",
+                        "PropagateAtLaunch": "true",
+                        "Value": {
+                            "Ref": "ClusterName"
+                        }
+                    }
+                ]
+            },
+            "Type": "AWS::AutoScaling::AutoScalingGroup"
+        },
+        "ShortmeBaseRole": {
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "sts:AssumeRole"
+                            ],
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "ec2.amazonaws.com"
+                                ]
+                            }
+                        }
+                    ],
+                    "Version": "2012-10-17"
+                },
+                "Path": "/"
+            },
+            "Type": "AWS::IAM::Role"
+        },
+        "ShortmeEc2Policy": {
+            "Properties": {
+                "PolicyDocument": {
+                  "Statement": [
+                    {
+                      "Action": [
+                        "dynamodb:CreateTable",
+                        "dynamodb:GetItem",
+                        "dynamodb:PutItem",
+                        "dynamodb:UpdateItem"
+                      ],
+                      "Effect": "Allow",
+                      "Resource": [
+                        {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:aws:dynamodb:",
+                              {
+                                "Ref": "AWS::Region"
+                              },
+                              ":",
+                              {
+                                "Ref": "AWS::AccountId"
+                              },
+                              ":table/",
+                              {
+                                "Ref": "ShortmeDynamo"
+                              }
+                            ]
+                          ]
+                        },
+                        {
+                          "Fn::Join": [
+                            "",
+                            [
+                              "arn:aws:dynamodb:",
+                              {
+                                "Ref": "AWS::Region"
+                              },
+                              ":",
+                              {
+                                "Ref": "AWS::AccountId"
+                              },
+                              ":table/",
+                              {
+                                "Ref": "ShortmeDynamoCounter"
+                              }
+                            ]
+                          ]
+                        }
+                      ]
+                    }
+                  ],
+                    "Version": "2012-10-17"
+                },
+                "PolicyName": "ShortmeEc2Policy",
+                "Roles": [
+                    {
+                        "Ref": "ShortmeBaseRole"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::Policy"
+        },
+        "ShortmeIAMInstanceProfile": {
+            "Properties": {
+                "Path": "/",
+                "Roles": [
+                    {
+                        "Ref": "ShortmeBaseRole"
+                    }
+                ]
+            },
+            "Type": "AWS::IAM::InstanceProfile"
+        },
+        "ShortmeLaunchConfiguration": {
+            "DependsOn": [
+                "ShortmeSecurityGroup"
+            ],
+            "Properties": {
+                "BlockDeviceMappings": [
+                    {
+                        "DeviceName": "/dev/sda1",
+                        "Ebs": {
+                            "DeleteOnTermination": "true",
+                            "VolumeSize": 10,
+                            "VolumeType": "gp2"
+                        }
+                    }
+                ],
+                "IamInstanceProfile": {
+                    "Ref": "ShortmeIAMInstanceProfile"
+                },
+                "ImageId": {
+                    "Fn::FindInMap": [
+                        "AWSRegionArch2AMI",
+                        {
+                            "Ref": "AWS::Region"
+                        },
+                        {
+                            "Fn::FindInMap": [
+                                "AWSInstanceType2Arch",
+                                {
+                                    "Ref": "InstanceType"
+                                },
+                                "Arch"
+                            ]
+                        }
+                    ]
+                },
+                "InstanceType": {
+                    "Ref": "InstanceType"
+                },
+                "KeyName": {
+                    "Ref": "LaunchKey"
+                },
+                "SecurityGroups": [
+                    {
+                        "Ref": "ShortmeSecurityGroup"
+                    }
+                ],
+                "UserData": {
+                    "Fn::Base64": {
+                        "Fn::Join": [
+                            "",
+                            [
+                                "#!/bin/bash -xe\n",
+                                "set -o errexit ; set -o nounset\n",
+                                "\n",
+                                "function error_exit\n",
+                                "{\n",
+                                "  /usr/local/bin/cfn-signal -e 1 ",
+                                "--region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                " --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --resource ShortmeAutoScalingGroup",
+                                "\n",
+                                "  exit 1\n",
+                                "}\n",
+                                "trap error_exit SIGHUP SIGQUIT SIGILL SIGABRT\n",
+                                "\n",
+                                "apt-get update\n",
+                                "# Install AWS CloudFormation script helpers\n",
+                                "apt-get -y install python-setuptools python-pip\n",
+                                "if [ ! -f /usr/local/bin/cfn-init ]; then\n",
+                                "  pip install docutils\n",
+                                "  curl --retry 5 -O https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n",
+                                "  pip install aws-cfn-bootstrap-latest.tar.gz\n",
+                                "rm aws-cfn-bootstrap-latest.tar.gz\n",
+                                "fi\n",
+                                "function cfn_retry {\n",
+                                "  tries=0\n",
+                                "  status=-1\n",
+                                "  until [ $status == 0 ]; do\n",
+                                "    $1\n",
+                                "    status=$?\n",
+                                "    tries=$(($tries + 1))\n",
+                                "    if [ $tries -gt 3 ]; then\n",
+                                "      /bin/echo \"Number of retries exceeded.\"\n",
+                                "      return $status\n",
+                                "    elif [ $status != 0 ]; then\n",
+                                "      /bin/echo \"Failed with status $status. Retrying.\"\n",
+                                "      sleep 5\n",
+                                "    fi\n",
+                                "  done\n",
+                                "}\n",
+                                "\n",
+                                "# Run cfn-init and retry on failure\n",
+                                "cfn_retry \"/usr/local/bin/cfn-init -v --region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                " -s ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " -r ShortmeAutoScalingGroup ",
+                                "\" || error_exit 'Failed to run cfn-init'\n",
+                                "\n",
+                                "\n",
+                                "/usr/local/bin/cfn-signal -e 0 ",
+                                "--region ",
+                                {
+                                    "Ref": "AWS::Region"
+                                },
+                                " --stack ",
+                                {
+                                    "Ref": "AWS::StackName"
+                                },
+                                " --resource ShortmeAutoScalingGroup ",
+                                "\n",
+                                "trap '' SIGHUP SIGQUIT SIGILL SIGABRT\n",
+                                "\n",
+                                "exit 0",
+                                ""
+                            ]
+                        ]
+                    }
+                }
+            },
+            "Type": "AWS::AutoScaling::LaunchConfiguration"
+        },
+        "ShortmeSecurityGroup": {
+            "Properties": {
+                "GroupDescription": "Shortme security group",
+                "SecurityGroupIngress": [
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "22",
+                        "IpProtocol": "tcp",
+                        "ToPort": "22"
+                    },
+                    {
+                        "CidrIp": "0.0.0.0/0",
+                        "FromPort": "80",
+                        "IpProtocol": "tcp",
+                        "ToPort": "80"
+                    }
+                ],
+                "VpcId": {
+                    "Ref": "VPC"
+                }
+            },
+            "Type": "AWS::EC2::SecurityGroup"
+        },
+      "ShortmeDynamoCounter": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "Id",
+              "AttributeType": "N"
+            }
+          ],
+          "KeySchema": [
+            {
+              "AttributeName": "Id",
+              "KeyType": "HASH"
+            }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 1,
+            "WriteCapacityUnits": 1
+          },
+          "TableName": "ShortmeCounter"
+        }
+      },
+      "ShortmeDynamo": {
+        "Type": "AWS::DynamoDB::Table",
+        "Properties": {
+          "AttributeDefinitions": [
+            {
+              "AttributeName": "Id",
+              "AttributeType": "S"
+            }
+          ],
+          "KeySchema": [
+            {
+              "AttributeName": "Id",
+              "KeyType": "HASH"
+            }
+          ],
+          "ProvisionedThroughput": {
+            "ReadCapacityUnits": 1,
+            "WriteCapacityUnits": 1
+          },
+          "TableName": "Shortme"
+        }
+      }
+    }
+}
