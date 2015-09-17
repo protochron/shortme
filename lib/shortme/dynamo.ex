@@ -15,6 +15,9 @@ defmodule Shortme.Dynamo do
     case :erlcloud_ddb2.update_item("ShortmeCounter", [{"Id", {:n, 0}}], "set UrlCount = UrlCount + :num", [{:expression_attribute_values, [{":num", 1}]}, {:return_values, :all_old}], Shortme.Dynamo.get_aws_config()) do
       {:ok, x} ->
         id = Enum.into(x, %{})["UrlCount"]
+      {:error, {"ValidationException", _}} ->
+          :erlcloud_ddb2.put_item("ShortmeCounter", [{"Id", {:n, 0}}, {"UrlCount", {:n, 0}}], [], get_aws_config)
+          id = 0
     end
 
     # Get the short URL we should use here
@@ -27,7 +30,6 @@ defmodule Shortme.Dynamo do
         {:error, x} ->
           {:error, x}
       end
-
   end
 
   def retrieve(key) do

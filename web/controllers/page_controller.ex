@@ -8,7 +8,7 @@ defmodule Shortme.PageController do
     case result do
       {:ok, id} ->
         conn
-        |> put_flash(:info, "Your link is: #{page_url(Endpoint, :index)}/#{id}")
+        |> put_flash(:info, "Your link is: #{page_url(Endpoint, :index)}#{id}")
         |> render("index.html")
 
       {:error, _} ->
